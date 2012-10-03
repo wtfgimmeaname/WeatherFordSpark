@@ -1,0 +1,80 @@
+body *, html body * {
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+
+/* Default welcome state of header */
+header {
+  width: 100%;
+  padding: 20px 0 0;
+  background: -webkit-gradient(linear, left top, left bottom, from(#2a425c), to(#40668f));
+  background: -moz-linear-gradient(top,  #2a425c 0%,  #40668f 100%);
+  background: -ms-linear-gradient(top, #2a425c 0%, #40668f 100%);
+  background: -o-linear-gradient(top, #2a425c 0%, #40668f 100%);
+  background: linear-gradient(top, #2a425c 0%, #40668f 100%);
+  border-bottom: 2px solid #9eaebe;
+  position: relative;
+}
+header > div {
+  width: 980px;
+  margin: 0 auto;
+  font: normal 20px 'Helvetica Neue', 'Helvetica', sans-serif;
+  text-align: center;
+  color: #eeeeff;
+}
+header h1 {
+  margin-bottom: 15px;
+  text-shadow: 3px 3px 3px #333;
+}
+header h1 span { font-size: 11px; }
+header h2 {
+  margin-bottom: 15px;
+  font: normal 16px 'Helvetica Neue', 'Helvetica', sans-serif;
+}
+header form { padding: 20px 0 30px; }
+header form input {
+  padding: 5px;
+  border: 1px solid #666;
+  -moz-border-radius: 5px 5px;
+  -webkit-border-radius: 5px 5px;
+  border-radius: 5px 5px;
+  background: -webkit-gradient(linear, left top, left bottom, from(#c5c5c7), to(#fefefe));
+  background: -moz-linear-gradient(top,  #c5c5c7 0%,  #fefefe 100%);
+  background: -ms-linear-gradient(top, #c5c5c7 0%, #fefefe 100%);
+  background: -o-linear-gradient(top, #c5c5c7 0%, #fefefe 100%);
+  background: linear-gradient(top, #c5c5c7 0%, #fefefe 100%);
+  font: normal 14px arial, sans-serif;
+}
+header form input[type="text"] { width: 300px; }
+header form input[type="submit"] { padding: 5px 10px; }
+
+/* Form errors */
+form.error input {
+  border: 1px solid #9f1c1c;
+  -webkit-box-shadow: 2px 2px 0px #9f1c1c;
+  -moz-box-shadow: 2px 2px 0px #9f1c1c;
+  box-shadow: 2px 2px 0px #9f1c1c;
+}
+
+/* Minimized version of the header */
+header.minimized { padding: 2px 10px; }
+header.minimized > div {
+  width: 100%;
+  font-size: 10px;
+  text-align: left;
+}
+header.minimized h1 {
+  display: inline-block;
+  margin: 0 25px 0 0;
+}
+header.minimized h2 { display: none; }
+header.minimized form {
+  display: inline-block;
+  padding: 0;
+}
+
+/* Data */
+article section { height: 100%; }
+article .gmap { width: 40%; }
+article .wdata { width: 60%; }
