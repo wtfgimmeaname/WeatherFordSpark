@@ -3,33 +3,58 @@ window.WeatherFord || {}
 window.WeatherFord = {
   location: "welcome",
   searchForm: $('form#location-search'),
+
+  // Google global properties
   geo: new google.maps.Geocoder(),
   map: undefined,
 
-  /*
-   * Initialize weather app.
-   * Call loadLocation without param to check for existing cookie
-   * If none, return the welcome page.
-   */
+  // WWO global properties
+  wwoUrl:  "http://free.worldweatheronline.com/feed/weather.ashx",
+  wwoData: {
+    key:  "059fda09a6175615120310",
+    format: "json",
+    num_of_days: "5"
+  },
+
+  // Initialize weather app.
   init: function() {
-    // Capture form submit and set location value
+    // Setup global event listeners
     this.searchForm.on('submit', function(evt) {
       evt.preventDefault();
       WeatherFord.setLocation($('#location', this).val());
+      WeatherFord.buildWeatherFordSpark();
     });
 
-    if (this.getLocation()) { this.buildGeoLocation(); }
-    else { this.showWelcome(); }
+    $('.current-cookie a').on('click', function(evt) {
+      evt.preventDefault();
+      if (WeatherFord.unsetLocation()) { WeatherFord.showWelcome(); }
+    });
+
+    if (this.getLocation()) { this.buildWeatherFordSpark(); }
   },
 
-  buildGeoLocation: function() {
+  // Build entire location page.
+  buildWeatherFordSpark: function() {
     this.searchForm.find('input#location').val(this.location);
-    this.geo.geocode({ 'address': WeatherFord.location }, function(res, stat) {
-      if (stat === "OK") { WeatherFord.renderMap(res) }
-    });
+
+    // Show google map.
+    WeatherFord.geo.geocode( { 'address': WeatherFord.location },
+      function(res, stat) {
+        if (stat === "OK") {
+          var t = setTimeout(function() {
+            WeatherFord.gMapRender(res);
+            clearTimeout(t);
+          }, 500);
+        }
+      }
+    );
+
+    //this.weatherHUD(); // Build weather data from WWO
   },
 
-  renderMap: function(data) {
+  // Render or build a google map
+  gMapRender: function(data) {
+    $('#map-canvas').fadeIn(200);
     if (this.map) { this.map.setCenter(data[0].geometry.location); }
     else {
       // Build new map, make it resizable, and set weather layers
@@ -55,6 +80,16 @@ window.WeatherFord = {
     $('#map-canvas').css('height', ($(document).height() - 35)+"px");
   },
 
+  weatherHUD: function() {
+    this.wwoData['q'] = encodeURIComponent(this.location);
+
+    //$.ajax({
+    //  url: this.wwoUrl, dataType: "jsonp", data: this.wwoData,
+    //  success: function(data) { console.log(data); },
+    //  error: function(data) { console.log("Error: " + data); }
+    //});
+  },
+
   // Check for a location
   getLocation: function() {
     if ($.cookie('location')) {
@@ -71,15 +106,13 @@ window.WeatherFord = {
     if (param && typeof(param) === "string" &&
         param !== "Please enter a valid location") {
 
-      // Reset form, hide welcome screen, show loader
+      // Reset form, hide welcome screen
       this.searchForm.removeClass('error');
       if (this.location === "welcome") { this.hideWelcome(); }
-      this.showLoader();
 
       // Set cookie and global value to new location
       $.cookie('location', param, { expires: 7, path: "/" });
       this.location = $.cookie('location')
-      this.buildGeoLocation();
 
       return true;
     } else {
@@ -89,17 +122,33 @@ window.WeatherFord = {
     }
   },
 
-  showLoader: function() { $('.loading').addClass('is') },
-  hideLoader: function() { $('.loading').removeClass('is') },
+  // Unset current location
+  unsetLocation: function() {
+    $.removeCookie('location', { expires: 7, path: "/" });
+    if (!$.cookie('location')) { return true; }
+    else { return false; }
+  },
 
-  showWelcome: function() { this.location = "welcome" },
+  // Show welcome screen - No location cookie set
+  showWelcome: function() {
+    this.location = "welcome"
+    // Hide and remove old data and show big header
+    $('#map-canvas, #weather-graph').fadeOut(200);
+    header = $('body > header');
+    header.animate({ top: "-240px" }, 200, function() {
+      header.removeClass('minimized').animate({ top: "0px" }, 200)
+            .find('.current-cookie').hide();
+    });
+  },
+
+  // Location set/found - Cookie exists or search made
   hideWelcome: function() {
     if (this.location === "welcome") {
-      header = $('body > header')
-      header.animate({
-        top: "-"+(header.height()+30)+"px"
-      }, 200, function() {
+      header = $('body > header');
+      header.animate({ top: "-240px" }, 200, function() {
         header.addClass('minimized').animate({ top: "0px" }, 200)
+              .find('.current-cookie').show()
+              .find('p').text(WeatherFord.location);
       });
     }
   }

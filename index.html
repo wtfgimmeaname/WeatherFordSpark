@@ -36,16 +36,22 @@
                value="San Francisco, CA, USA" />
         <input type="submit" value="Search" />
       </form>
+      <div class="current-cookie">
+        <p></p><a href="#">X</a>
+      </div>
     </div>
   </header>
   <article>
     <section id="map-canvas" class="gmap"></section>
-    <section id="weather-graph"></section>
+    <section id="weather-graph" class="wdata">
+      <div class="hud"></div>
+      <div class="graph"></div>
+    </section>
   </article>
-  <div class="loading"></div>
 
   <script src="js/vendor/jquery-1.8.1.min.js"></script>
-  <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCHc8NBkhZEZWTdWCI1ZkuJuuWpUCBE1HY&libraries=weather&sensor=false">
+  <script src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCHc8NBkhZEZWTdWCI1ZkuJuuWpUCBE1HY&libraries=weather&sensor=false">
+  <script src="js/vendor/d3.v2.min.js"></script>
   <script src="js/vendor/underscore.js"></script>
   <script src="js/plugins.js"></script>
   <script src="js/weatherford.js"></script>
