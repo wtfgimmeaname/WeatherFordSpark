@@ -1,6 +1,6 @@
 /* Global tools */
 window.weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-window.currentReadableTime = function() {
+window.currentReadableTime = function() { // Return readable time format - 8:45 AM
   dNow  = new Date();
   minutes  = dNow.getMinutes();
   meridian = (dNow.getHours() > 11) ? "PM" : "AM";
@@ -8,22 +8,32 @@ window.currentReadableTime = function() {
   readableMins = (minutes < 10) ? "0" + minutes : minutes;
   return readableHour + ":" + readableMins + " " + meridian;
 }
+// Returns true if it's currently nighttime. This way we can show the moon in the "current weather" area.
 window.isNighttime = function() {
   dte = new Date();
   if (dte.getHours() < 5 || dte.getHours() > 18) { return true; }
   else { return false; }
 }
 
+// Register global objects on the window.
 window.WeatherFord        || {}
-window.Wunderground       || {}
 window.WorldWeatherOnline || {}
 
 /* World weather online
- * Used for forecast data
+ * This api is used for getting the 5 day
+ * forecast data and yesterdays data.
  */
 window.WorldWeatherOnline = {
   url:  "http://free.worldweatheronline.com/feed/weather.ashx",
   data: { key: "059fda09a6175615120310", format: "json" },
+
+  /* WWO Weather codes
+   * WWO uses a really poor naming system for describing current
+   * weather conditions. We use their defaults for display but map
+   * numerous different conditions to the same visual icons for example:
+   * "Patchy Rain Nearby", "Patchy light drizzle", "Light Drizzle" are
+   * all possible condition codes that can show the "light-rain" icon.
+   */
   weatherClasses: ["clear-sunny", "partly-cloudy", "cloudy", "overcast",
                    "fog", "freezing-fog", "light-rain", "heavy-rain",
                    "light-rain-thunder", "heavy-rain-thunder", "light-snow",
@@ -38,69 +48,75 @@ window.WorldWeatherOnline = {
     230: 12, 335: 12, 338: 12, 371: 12
   },
 
+  // Lookup html class from code
   getClassFromCode: function(code) {
     classIndex = this.weatherCodes[code];
     return this.weatherClasses[classIndex];
   },
 
-  fiveDayForecastJSON: function(address) {
-    //encodeURIComponent(this.location);
-    //$.ajax({
-    //  url: this.wwoUrl, dataType: "jsonp", data: this.wwoData,
-    //  success: function(data) { console.log(data); },
-    //  error: function(data) { console.log("Error: " + data); }
-    //});
-    var tst = "super";
-    $.ajax({
-      url: "js/wwo-5-days-dummy.json",
-      dataType: "json",
-      async: false,
-      success: function(data) {
-        tst = data['data'];
-      }
-    });
-    return tst;
+  // WWO query for specific date requires format YYYY-MM-DD
+  formatQueryableDate: function(offsetFromToday) {
+    reqDate = new Date();
+    reqDate.setDate(reqDate.getDate() + offsetFromToday)
+
+    year   = reqDate.getFullYear();
+    month  = ((reqDate.getMonth()+1) < 10) ? "0"+(reqDate.getMonth()+1) : reqDate.getMonth()+1;
+    day    = (reqDate.getDate() < 10) ? "0"+reqDate.getDate() : reqDate.getDate();
+
+    return year+"-"+month+"-"+day;
   },
 
-  yesterdaysJSON: function(address) {
-    //encodeURIComponent(this.location);
-    //$.ajax({
-    //  url: this.wwoUrl, dataType: "jsonp", data: this.wwoData,
-    //  success: function(data) { console.log(data); },
-    //  error: function(data) { console.log("Error: " + data); }
-    //});
-    var tst = "";
+  /*
+   * Execute ajax paths for retrieving all data and formatting
+   */
+  weatherJSON: function(address, func) {
+    this.fiveDayForecastJSON(address, this.yesterdaysJSON, func);
+    return true;
+  },
+
+  // Build, and send 5 day forecast to yesterday function
+  fiveDayForecastJSON: function(address, nextFunc, finalFunc) {
+    fiveDayData      = this.data;
+    fiveDayData['q'] = encodeURIComponent(address);
+    fiveDayData['num_of_days'] = '5';
+    xhrData = {};
+
     $.ajax({
-      url: "js/wwo-yesterday-dummy.json",
-      dataType: "json",
-      async: false,
+      url: this.url, dataType: "jsonp", data: fiveDayData, async: false,
       success: function(data) {
-        tst = data['data'];
-      }
+        delete WorldWeatherOnline.data['num_of_days'];
+        nextFunc(address, data, finalFunc);
+      },
+      error: function(data)   { alert("Error retrieving the 5 day forecast."); }
     });
-    return tst;
+  },
+
+  // Build, send, and return data on yesterdays weather.
+  yesterdaysJSON: function(address, fiveDayData, finalFunc) {
+    _this = WorldWeatherOnline;
+    yesterdayData = _this.data;
+    yesterdayData['date'] = _this.formatQueryableDate(-1);
+
+    $.ajax({
+      url: _this.url, dataType: "jsonp", data: yesterdayData, async: false,
+      success: function(data) {
+        delete _this.data['date'];
+        _this.cleanData(fiveDayData, data, finalFunc);
+      },
+      error: function(data)   { alert("Error retrieving yesterdays data."); }
+    });
+  },
+
+  cleanData: function(fiveDayData, yesterdaysData, finalFunc) {
+    cleanedData = {}
+    cleanedData['weathers'] = fiveDayData['data']['weather'];
+    cleanedData['weathers'].unshift(yesterdaysData['data']['weather'][0]);
+    cleanedData['current_condition'] = fiveDayData['data']['current_condition'][0];
+    finalFunc(cleanedData);
   }
 }
 
-/* Weather underground URL
- * Used for hourly reports - Plan is to make a simple horizon chart.
- */
-window.Wunderground = {
-  wunderHourlyUrl: "http://api.wunderground.com/api/ce8cd9fcb910f822/hourly/q/",
-
-  // Generate temperature array from hourly forecast data
-  temps: function(data) {
-    return _.map(data['hourly_forecast'], function(d) { return d['temp']['english'] });
-  },
-
-  // Generate Times array for x index
-  times: function(data) {
-    return _.map(data['hourly_forecast'], function(d) {
-      return d['FCTTIME']['civil'].replace(/:00 /g, "").toLowerCase()
-    });
-  }
-}
-
+/* WeatherFordSpark app */
 window.WeatherFord = {
   location: "welcome",
   searchForm: $('form#location-search'),
@@ -140,7 +156,7 @@ window.WeatherFord = {
           var t = setTimeout(function() {
             $('#weather-data').fadeIn(200);
             WeatherFord.gMapRender(res);
-            WeatherFord.weatherForecast(res[0]['formatted_address'])
+            WeatherFord.fetchForecastData(res[0]['formatted_address'])
             clearTimeout(t);
           }, 500);
         }
@@ -148,15 +164,15 @@ window.WeatherFord = {
     );
   },
 
-  weatherForecast: function(geoAddress) {
-    // Get WWO data. Add yesterday to forecast
-    nextFiveDays = WorldWeatherOnline.fiveDayForecastJSON(geoAddress);
-    yesterday    = WorldWeatherOnline.yesterdaysJSON(geoAddress);
-    weathers     = nextFiveDays['weather'];
-    weathers.unshift(yesterday['weather'][0]);
+  // This makes ajax calls to wwo and on success builds the weather forcast
+  fetchForecastData: function(geoAddress) {
+    WorldWeatherOnline.weatherJSON(geoAddress, WeatherFord.weatherForecast)
+  },
 
+  // This is called by the WWO ajax call
+  weatherForecast: function(data) {
     // Build current weather data
-    this.currentWeatherHUD(nextFiveDays['current_condition'][0]);
+    WeatherFord.currentWeatherHUD(data['current_condition']);
 
     boxParent   = $('#weather-hud');
     forecastBox = boxParent.find('> div').detach();
@@ -164,7 +180,7 @@ window.WeatherFord = {
 
     // Reset and build forecast
     forecastBox.find('article:not(.clone)').remove();
-    _.each(weathers, function(day, idx) {
+    _.each(data['weathers'], function(day, idx) {
       aday = dayHTML.clone().removeClass('clone');
 
       // Set date title
@@ -196,6 +212,7 @@ window.WeatherFord = {
     boxParent.append(forecastBox).fadeIn(200);
   },
 
+  // Build current weather display
   currentWeatherHUD: function(data) {
     // Build data vars
     icon = WorldWeatherOnline.getClassFromCode(data['weatherCode']);
@@ -210,43 +227,6 @@ window.WeatherFord = {
                             .siblings('.icon').addClass(icon)
 
     if (isNighttime()) { iconHTML.addClass('night'); }
-  },
-
-  // TODO: Incomplete d3 horizon chart - http://square.github.com/cubism/
-  chartRender: function(data) {
-    var wBox   = $('#weather-data'),
-        wTemps = Wunderground.temps(data),
-        wTimes = Wunderground.times(data),
-        wMin   = d3.min(wTemps),
-        wMax   = d3.max(wTemps),
-        x = d3.scale.linear().domain([0, wTemps.length-1])
-              .range([0, wBox.width()]),
-        y = d3.scale.linear().domain([parseInt(wMax)+10, parseInt(wMin)-10])
-              .range([0, wBox.height()]);
-
-    var chart = d3.select('#weather-data div.graph').append('svg:svg')
-                  .attr('width', '100%').attr('height', '90%');
-
-    // Draw Line of next 3 days of temperatures
-    var hourlyForecast = d3.svg.line().x(function(d, i) { return x(i); }).y(y);
-    chart.selectAll('path.line').data([wTemps]).enter().append('svg:path')
-         .attr('d', hourlyForecast);
-
-    // Build Y axis ticks
-    chart.selectAll('.y-tick').data(y.ticks(8)).enter().append('svg:g')
-         .attr('transform', function(d) { return "translate(30, "+(y(d))+")"; })
-         .attr('class', 'y-tick').append('svg:text').text(function(d) { return d+"°F" })
-         .attr('text-anchor', 'end').attr('dy', 2).attr('dx', 2);
-
-    // Build X axis times
-    offset = 0;
-    chart.selectAll('.x-tick').data(wTimes).enter().append('svg:g')
-         .attr('transform', function(d) {
-           offset = offset+40;
-           return "translate("+offset+", "+ (wBox.height()-50) +")";
-         })
-         .attr('class', 'x-tick').append('svg:text').text(function(d) { return d })
-         .attr('text-anchor', 'end').attr('dy', 2).attr('dx', 2);
   },
 
   // Render or build a google map

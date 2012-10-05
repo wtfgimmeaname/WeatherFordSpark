@@ -120,7 +120,7 @@ article section {
 }
 .current-weather .icon {
   width: 135px;
-  height: 85px;
+  height: 88px;
   position: absolute;
   top: -14px;
   left: 35px;
@@ -151,6 +151,19 @@ article section {
   font-weight: 100;
   color: #999;
 }
+.current-weather .credit {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 10px;
+  color: #ddd;
+  text-align: right;
+}
+.current-weather .credit a {
+  color: #9392f2;
+  text-decoration: none;
+}
+.current-weather .credit a:hover { text-decoration: underline; }
 
 .day {
   background-color: #f1f1f1;
