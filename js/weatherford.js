@@ -156,7 +156,7 @@ window.WeatherFord = {
     weathers.unshift(yesterday['weather'][0]);
 
     // Build current weather data
-    this.currentWeather(nextFiveDays['current_condition'][0]);
+    this.currentWeatherHUD(nextFiveDays['current_condition'][0]);
 
     boxParent   = $('#weather-hud');
     forecastBox = boxParent.find('> div').detach();
@@ -169,7 +169,10 @@ window.WeatherFord = {
 
       // Set date title
       if (idx === 0) { aday.find('header h3').text('Yesterday'); }
-      else if (idx === 1) { aday.addClass('today').find('header h3').text('Today'); }
+      else if (idx === 1) {
+        forecastBox.append(aday.clone().empty().addClass('today-padder'));
+        aday.addClass('today').find('header h3').text('Today');
+      }
       else {
         dte = new Date(day['date'].replace(/(\d{4})-(\d{2})-(\d{2})/,"$2/$3/$1"));
         aday.find('header h3').text(weekdays[dte.getDay()]);
@@ -182,6 +185,7 @@ window.WeatherFord = {
       // Set weather body data
       aday.find('section p.icon').text(weatherStr).addClass(weatherCls)
           .siblings('.weather').text(weatherStr)
+          .siblings('.winds').text("Winds at "+day['windspeedMiles']+"mph")
           .siblings('.temp-high').find('span').html(day['tempMaxF']+"&#8457;")
           .closest('.temp-high').siblings('.temp-low')
           .find('span').html(day['tempMinF']+"&#8457;");
@@ -192,20 +196,20 @@ window.WeatherFord = {
     boxParent.append(forecastBox).fadeIn(200);
   },
 
-  currentWeather: function(data) {
+  currentWeatherHUD: function(data) {
     // Build data vars
-    loc  = "<span>Currently in:</span> " + this.location;
     icon = WorldWeatherOnline.getClassFromCode(data['weatherCode']);
     temp = data['temp_F'] + "&#8457;";
-    wthr = data['weatherDesc']['value'];
-    time = "At " + data['observation_time'] + ", now " + currentReadableTime();
+    wthr = data['weatherDesc'][0]['value'];
+    time = "Updated at: " + data['observation_time'] + ", now " + currentReadableTime();
 
-    iconHTML = $('#current').find('.location').html(loc)
-                            .siblings('div').find('.temp').html(temp)
+    iconHTML = $('#current').find('.location').text("in "+this.location)
                             .siblings('.weather').text(wthr)
+                            .siblings('.temp').html(temp)
                             .siblings('.time').text(time)
                             .siblings('.icon').addClass(icon)
-    // Set current icon?
+
+    if (isNighttime()) { iconHTML.addClass('night'); }
   },
 
   // TODO: Incomplete d3 horizon chart - http://square.github.com/cubism/
